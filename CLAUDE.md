@@ -1,6 +1,6 @@
 # whack-a-mole-cam — 體感打地鼠
 
-靜態網頁遊戲（`index.html`＋`scene3d.js`（Three.js 3D 場景）＋`manual.html`＋PWA 檔），無建置步驟。攝影機骨架（`initCamera`／`refreshCamPicker`／`pickPreferredCam`／滑鼠降級／跑馬燈／PWA 安裝段落）與大頭照裁切編輯器複製自 `ball-throw-cam`。port 8873。2026-11-13 建立（使用者一句話需求：「3D 打地鼠，地鼠可以換人頭，用體感打擊」），**尚未建 GitHub repo、未上線**。預定 visitor-badge `m255525.whackamolecam`、repo 名 `whack-a-mole-cam`（建公開 repo 需使用者自己跑 `gh repo create`）。
+靜態網頁遊戲（`index.html`＋`scene3d.js`（Three.js 3D 場景）＋`manual.html`＋PWA 檔），無建置步驟。攝影機骨架（`initCamera`／`refreshCamPicker`／`pickPreferredCam`／滑鼠降級／跑馬燈／PWA 安裝段落）與大頭照裁切編輯器複製自 `ball-throw-cam`。port 8873。2026-11-13 建立（使用者一句話需求：「3D 打地鼠，地鼠可以換人頭，用體感打擊」）並同日上線：公開 repo <https://github.com/M255525/whack-a-mole-cam>，GitHub Pages（Actions workflow，push 到 master 自動部署）<https://m255525.github.io/whack-a-mole-cam/>。visitor-badge `m255525.whackamolecam`。
 
 ## 架構
 - `scene3d.js` 只負責畫：菜園木框土台＋3×3 地洞（`HOLES`，洞距 x 2.5／z 2.65）、地鼠（膠囊身體＋球頭＋臉帽＋耳朵爪子、安全帽、皇冠、炸彈、暈眩星星）、槌子（最多 3 支：h0／h1／m）、粒子／爆炸、天色（白天→傍晚→最後衝刺紫）、遠景（穀倉、風車、樹、柵欄、乾草捆、雲、蝴蝶）。全部程式產生，無外部素材。
