@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>體感打地鼠 操作手冊</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<style>
+  :root { --bg: #17290f; --card: #233d18; --fg: #f3f7ea; --muted: #b9c8a8; --accent: #ffe27a; --orange: #ff9f2f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif; line-height: 1.85; }
+  main { max-width: 820px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: clamp(26px, 6vw, 36px); margin: 0 0 4px; }
+  h2 { color: var(--accent); font-size: 20px; margin: 28px 0 8px; border-left: 4px solid var(--orange); padding-left: 10px; }
+  section { background: var(--card); border-radius: 14px; padding: 4px 18px 12px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { border-bottom: 1px solid rgba(255,255,255,.12); padding: 8px 6px; text-align: left; vertical-align: top; }
+  th { color: var(--accent); }
+  .table-wrap { overflow-x: auto; }
+  a { color: var(--accent); }
+  .warn { background: rgba(255,90,90,.12); border: 1px solid rgba(255,90,90,.4); border-radius: 12px; padding: 10px 14px; }
+  kbd { background: rgba(255,255,255,.15); border-radius: 4px; padding: 0 6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🔨 體感打地鼠 操作手冊</h1>
+  <p class="muted">對著鏡頭往下一敲就能打地鼠，地鼠的臉可以換成你上傳的照片。<a href="index.html">← 回到遊戲</a></p>
+
+  <h2>⚠ 使用警語</h2>
+  <section class="warn">
+    <ul>
+      <li>本遊戲僅供個人娛樂與教學示範使用，禁止未經授權公開發布、販售或商業化使用。</li>
+      <li>攝影機影像只在你的瀏覽器裡即時分析手的位置，<b>不會錄影、不會上傳</b>。</li>
+      <li>上傳的照片只存在這台裝置的瀏覽器（localStorage），不會送到任何伺服器。請只用你本人或<b>已取得當事人同意</b>的照片，<b>不要拿來嘲弄、霸凌或羞辱他人</b>。</li>
+      <li>揮手敲打前請確認四周淨空，小心別打到人、桌子或螢幕；長輩與小朋友請在旁陪同。</li>
+    </ul>
+  </section>
+
+  <h2>快速開始</h2>
+  <section>
+    <ol>
+      <li>（可選）在「🎭 換人頭」點圓圈上傳照片，拖曳／縮放把臉放進圓框，按「套用」，再幫他取個名字。最多 6 張。</li>
+      <li>選難度（簡單／普通／困難）。</li>
+      <li>按「📷 體感開打」，允許瀏覽器使用攝影機。站在鏡頭前約 1～2 公尺，讓手出現在畫面裡。</li>
+      <li>倒數 3、2、1 後開始，預設 60 秒一局。</li>
+    </ol>
+    <p class="muted">沒有攝影機也能玩：按「改用滑鼠／觸控／數字鍵玩」。</p>
+  </section>
+
+  <h2>遊戲規則</h2>
+  <section>
+    <div class="table-wrap"><table>
+      <tr><th>角色</th><th>敲到會怎樣</th></tr>
+      <tr><td>🐹 地鼠</td><td>+10 分。連續打中有連擊加成（第 3 連擊起每次多 +2，最多 +10）。</td></tr>
+      <tr><td>👑 黃金地鼠</td><td>+30 分，但出現的時間很短。</td></tr>
+      <tr><td>⛑ 安全帽地鼠</td><td>第一下敲掉安全帽（+5），要再敲一下才倒（+20）。</td></tr>
+      <tr><td>💣 炸彈</td><td><b>別敲！</b>敲到 −20 分、連擊歸零。可在設定裡關掉炸彈。</td></tr>
+    </table></div>
+    <ul>
+      <li>地鼠沒被打就縮回去＝「溜走」，連擊會中斷。</li>
+      <li>最後 10 秒是「🔥 最後衝刺」，天色變成紫色，所有得分 ×2。</li>
+      <li>越到後面，地鼠冒出來越快、停留越短、同時出現越多隻。</li>
+      <li>結算畫面會列出「被敲最多次」的人頭排行，以及打中次數、命中率、最高連擊、溜走數。</li>
+    </ul>
+  </section>
+
+  <h2>體感操作</h2>
+  <section>
+    <ul>
+      <li><b>槌子跟著你的手</b>：畫面上的 3D 槌子就是你的手，對準的洞口會出現黃色光圈。</li>
+      <li><b>往下敲</b>（標準）：把手移到地鼠上方，<b>由上往下快速一敲</b>。判斷「敲哪一洞」用的是你<b>起手時</b>對準的位置，所以先對準、再敲。</li>
+      <li>手掌旁的圓環是「力道環」：往下的速度越快填得越滿，變綠色就會觸發。</li>
+      <li><b>雙手兩支槌子</b>：兩隻手都可以敲。電腦比較慢時可在設定改「單手」。</li>
+      <li><b>手碰到就打</b>（簡單）：設定改成這個後，手移到地鼠上停一下下就會打，不用敲，適合小朋友或長輩。</li>
+      <li>左下角小視窗是攝影機畫面，可確認手有沒有在鏡頭裡；不想看可以在設定隱藏。</li>
+    </ul>
+    <p class="muted">手感調校：在設定打開「顯示偵測數值」，右下角會顯示偵測 fps、下敲速度與門檻。敲了沒反應→把「敲擊靈敏度」調高；手隨便動就亂敲→調低。手伸不到邊角的洞→「手部活動範圍」改大。</p>
+  </section>
+
+  <h2>滑鼠／觸控／鍵盤</h2>
+  <section>
+    <ul>
+      <li>滑鼠：移動槌子，點一下敲。觸控：直接點地鼠。</li>
+      <li>數字鍵盤：<kbd>7</kbd><kbd>8</kbd><kbd>9</kbd>＝最後排、<kbd>4</kbd><kbd>5</kbd><kbd>6</kbd>＝中間排、<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>＝最前排。</li>
+    </ul>
+  </section>
+
+  <h2>⚙ 常用設定</h2>
+  <section>
+    <div class="table-wrap"><table>
+      <tr><th>分類</th><th>項目</th></tr>
+      <tr><td>🎮 遊戲</td><td>每局時間（30／60／90 秒）、炸彈出不出現、音效</td></tr>
+      <tr><td>✋ 體感</td><td>打擊方式、敲擊靈敏度 1～5、手部活動範圍、單手／雙手、攝影機小視窗、顯示偵測數值</td></tr>
+      <tr><td>🎭 人頭</td><td>卡通地鼠要不要跟照片混著出現、地鼠頭上顯示名字</td></tr>
+      <tr><td>🏆 紀錄</td><td>清除最高分與排行榜、清除所有上傳的照片</td></tr>
+      <tr><td>ℹ 關於本工具</td><td>創作者、操作手冊、使用警語、加入主畫面、訪客數</td></tr>
+    </table></div>
+    <p class="muted">每一組設定都可以收合，展開狀態會被記住。</p>
+  </section>
+
+  <h2>資料儲存與隱私</h2>
+  <section>
+    <ul>
+      <li>照片（裁好的 256px 大頭＋縮小到 800px 的原圖，方便之後重新調整）、名字、設定、最高分、排行榜，全部只存在這台裝置的瀏覽器裡。</li>
+      <li>清除瀏覽器網站資料，或在設定按「清除所有上傳的照片」就會刪掉。</li>
+      <li>需要連網的只有：3D 函式庫 Three.js、手部追蹤模型（MediaPipe）、頂部公告跑馬燈與訪客計數器。</li>
+    </ul>
+  </section>
+
+  <h2>常見問題</h2>
+  <section>
+    <ul>
+      <li><b>攝影機打不開？</b>請確認網址是 https 或 localhost、瀏覽器已允許攝影機，且沒有其他程式（視訊會議、OBS）正在用鏡頭。有多支鏡頭時，開始畫面會出現鏡頭選單。</li>
+      <li><b>畫面卡卡的？</b>設定改「單手」，或關掉其他分頁。</li>
+      <li><b>3D 場景沒出現？</b>可能是網路擋住了 Three.js，請確認連線後重新整理；建議用新版 Chrome／Edge。</li>
+      <li><b>加入主畫面</b>：按「📲 加入主畫面」；iPhone 請用 Safari 的「分享 → 加入主畫面」。</li>
+    </ul>
+  </section>
+
+  <h2 id="creator-h">👤 創作者</h2>
+  <section id="creator">
+<div class="mk-creator">
+<style>.mk-creator{line-height:1.75}.mk-creator h3{margin:14px 0 6px;font-size:1.05em}.mk-creator table{width:100%;border-collapse:collapse;font-size:.95em}.mk-creator td,.mk-creator th{text-align:left;padding:5px 6px;border-bottom:1px solid rgba(128,128,128,.3);vertical-align:top}.mk-creator th{white-space:nowrap}.mk-creator ul{margin:4px 0;padding-left:1.4em}.mk-creator .mk-tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.mk-creator .mk-tags span{border:1px solid rgba(128,128,128,.45);border-radius:999px;padding:1px 10px;font-size:.9em}</style>
+<p><b>Mark Tsai（蔡豐全）</b>為深耕創業輔導與數位轉型領域的顧問與講師，長期擔任勞動力發展署創業顧問與多項政府計畫的顧問、業師與評審委員，協助中小企業導入數據分析與 AI 工具、申請政府補助計畫，並具備跨境電商實務與講師培訓的豐富經驗。本工具是其推廣 AI 工具運用於教學與課程情境的作品之一。</p>
+<p>聯絡信箱：<a href="mailto:tsaimark@gmail.com">tsaimark@gmail.com</a></p>
+<h3>專長</h3>
+<div class="mk-tags"><span>銷售數據分析</span><span>AI 工具運用</span><span>政府補助計畫申請</span><span>創業</span><span>跨境電商</span></div>
+<h3>證照</h3>
+<table>
+<thead><tr><th>年度</th><th>證照</th></tr></thead>
+<tbody>
+<tr><td>2013</td><td>青創總會 創業輔導顧問師班</td></tr>
+<tr><td>2014</td><td>青創總會 網路行銷講師培訓班</td></tr>
+<tr><td>2016</td><td>阿里巴巴 P4P 認證講師</td></tr>
+<tr><td>2017</td><td>iCap 訓練規劃與評量職能基準課程</td></tr>
+<tr><td>2023</td><td>iCap 職能導向課程申請認證實作班</td></tr>
+<tr><td>2025</td><td>iPAS AI 應用規劃師－初級</td></tr>
+<tr><td>2025</td><td>新北市社會局 社區數位陪伴員</td></tr>
+</tbody>
+</table>
+<h3>經歷</h3>
+<ul>
+<li>勞動力發展署桃竹苗分署 創業顧問（2017－迄今）</li>
+<li>勞動力發展署（北北基）小型企業人力提升計畫 顧問（2019－迄今）</li>
+<li>勞動力發展署（桃竹苗）小型企業人力提升計畫 顧問（2019－迄今）</li>
+<li>農業部農業科技司「科技農企業雙軸轉型躍升發展」科技計畫 業師（2025－2026）</li>
+<li>勞動力發展署 企業人力資源提升計畫 審查委員（2024）</li>
+<li>勞動力發展署 職前訓練評鑑計畫 委員（2022）</li>
+<li>勞動部桃竹苗分署 桃竹苗區域運籌人力資源整合服務計畫 顧問（2022－2023）</li>
+<li>經濟部中小企業處 SBIR 海選專案 評審委員（2019－2024）</li>
+<li>勞動力發展署 數位學習課程清單審查會議 審查委員（2024－2025）</li>
+<li>輔仁大學創新跨領域學院 課務委員（2024－2025）</li>
+<li>台北市進出口商業同業公會 跨境電商生態村 顧問</li>
+<li>台灣網商協會 顧問</li>
+<li>中華職能開發策進會 顧問（2018－2020）</li>
+<li>新北市汽車美容人員職業工會 顧問（2023－迄今）</li>
+<li>中華網路行銷講師協會 顧問（2022－迄今）</li>
+<li>新北市社企電商基地 輔導顧問（2018－2020）</li>
+<li>阿里巴巴國際站平台 認證講師（2016）</li>
+<li>巨匠電腦 跨境電子商務班 講師（2016－2017）</li>
+</ul>
+</div>
+  </section>
+</main>
+</body>
+</html>
