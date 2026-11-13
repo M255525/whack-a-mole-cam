@@ -1,5 +1,5 @@
 // 僅供「加入主畫面」安裝需求使用：network-first + 同源快取備援，不快取跨網域請求（MediaPipe CDN／模型檔）。
-const CACHE_NAME = 'whack-a-mole-cam-shell-v1';
+const CACHE_NAME = 'whack-a-mole-cam-shell-v2';
 const SHELL_FILES = [
   './',
   './index.html',

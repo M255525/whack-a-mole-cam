@@ -23,7 +23,9 @@
 
 ## 體感判定
 - HandLandmarker numHands 依設定 1／2（預設 2，雙手兩支槌子），攝影機 640×360，左下角小視窗（設定可隱藏，`opacity:0` 不停播放）。
-- 手座標直接對應整個畫面（`lmToScreen`，鏡像），再以畫面中心放大 `RANGE_SCALE`（小 1.0／中 1.3／大 1.6）＝槌子位置，手不用伸到鏡頭邊緣。
+- **九宮格瞄準（`SET.aim='grid'`，預設；2026-11-13 使用者要求「對應九宮格畫出九宮格方便辨識打擊」）**：手在攝影機畫面的正規化位置 (u,v)（`palm.x/W`、`palm.y/H`）→ `gridCell(u,v,prev)` 格號 0~8，上排＝最後排（與 `HOLES` 順序一致），`GRID_HYST=0.12` 格寬的換格遲滯。格子範圍 `GRID_REGION`（依「手部活動範圍」小／中／大＝0.06~0.94／0.15~0.85／0.24~0.76）。槌子直接吸附到那一洞（`screenOf(cell)`）。出手 `smashSample()`：**敲起手那一格（`g.top.cell`）**；手碰到模式用目前格。
+- 左下角 `#pip`（`<div>` 包 `#cam` 影像＋`#camgrid` 疊層）：`drawCamGrid()` 畫格線、格外變暗、手的黃點（力道滿變綠）、手所在格亮黃（有地鼠綠、炸彈紅）、各格地鼠小圖示 `KIND_ICON`、出手閃一下（`G.flash`）。座標換算 `pipMap()` 依 object-fit:cover 裁切。九宮格模式寬 `min(26vw,320px)`（400 時在 1280 寬會蓋到左前洞）；「隱藏影像」時九宮格模式仍顯示格子（`#cam.ghost`），自由模式整個藏起來（`#pip.off`）。
+- 自由移動（`SET.aim='free'`）：手座標對應整個畫面（`lmToScreen`，鏡像），再以畫面中心放大 `RANGE_SCALE`（小 1.0／中 1.3／大 1.6）＝槌子位置。
 - **往下敲** `detectSmash(samples, now, relax)` 純函式：時間窗（320ms）內最高點→最新點下降 ≥ `DROP_BASE=0.07`×H、下降量 ≥ 0.6×橫向位移、最近 ≥33ms 瞬時下降速度 ≥ `SPEED_BASE=0.75`×H/s；靈敏度 1~5（`SENS_FACTOR`）縮放；冷卻 300ms。**敲哪一洞用起手最高點（`top`）的瞄準位置**，不是敲到底的位置（敲下去手會往下滑到前一排）。手消失補判 `RELEASE_RELAX=0.65`。
 - **手碰到就打**（`SET.hitMode='touch'`）：手停在可打地鼠上 90ms 就打，冷卻 450ms，給小朋友／長輩。
 - 力道環、偵測數值面板（設定「顯示偵測數值」）同 ball-throw-cam。
@@ -42,5 +44,5 @@
 ## 測試
 - 本機：`python -m http.server 8873`（launch.json 名稱 `whack-a-mole-cam`）。
 - **只走滑鼠模式**：`document.getElementById('mouse-btn').click()`，避免誤開真實攝影機。Playwright 開的瀏覽器若被真人滑鼠碰到會亂敲，斷言要在同一次 evaluate 內做完。
-- `window.__game._test`：`step(dt)`、`spawn(i, kind, face)`（直接升到 up）、`whackHole(i)`、`whackAt(x,z)`、`swingHammer`、`detectSmash`、`effThresholds`、`set`、`world()`、`faces()`、`buildFaceList`、`crop`／`cropApply`／`openCropFor`、`up`（上傳格位 `up.slot`，測上傳時設它，不要點圓圈——會開原生檔案視窗卡住 Playwright）。
+- `window.__game._test`：`step(dt)`、`spawn(i, kind, face)`（直接升到 up）、`whackHole(i)`、`whackAt(x,z)`、`swingHammer`、`detectSmash`、`effThresholds`、`set`、`world()`、`faces()`、`buildFaceList`、`crop`／`cropApply`／`openCropFor`、`gridCell`／`gridBox`／`smashSample`／`drawCamGrid`／`applyPip`／`setMode`（`setMode('cam')` 只切畫面不開攝影機，可塞假手 `G.hands.set('h0',{palm,cell,aim,meter,hist:[],seen})` 測九宮格；沒有 landmarker 時 detectHands 直接 return，假手不會被清掉）、`up`（上傳格位 `up.slot`，測上傳時設它，不要點圓圈——會開原生檔案視窗卡住 Playwright）。
 - 2026-11-13 已驗證：點擊 9 個洞都命中正確那一洞且一次只打一隻、安全帽兩下、炸彈 −20 連擊歸零、黃金 +30、揮空、溜走中斷連擊、整局跑完到結算（被敲排行、統計）、上傳→裁切→命名→存檔→貼到地鼠臉上、設定收合與儲存、390px 手機版無溢出、console 無錯誤。

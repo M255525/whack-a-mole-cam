@@ -29,10 +29,16 @@
 
   #scene3d, #fx { position: absolute; inset: 0; width: 100%; height: 100%; }
   #fx { touch-action: none; cursor: none; }
-  #cam { position: absolute; left: 12px; bottom: 52px; width: min(26vw, 230px); aspect-ratio: 16 / 9; object-fit: cover; transform: scaleX(-1);
-    border-radius: 12px; border: 2px solid rgba(255,255,255,.75); box-shadow: 0 6px 20px rgba(0,0,0,.45); background: #000; display: none; pointer-events: none; z-index: 2; }
-  #cam.on { display: block; }
+  /* 左下角攝影機小視窗：影像＋九宮格疊層（#camgrid 不鏡像，座標自己換算） */
+  #pip { position: absolute; left: 12px; bottom: 52px; width: min(26vw, 230px); aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden;
+    border: 2px solid rgba(255,255,255,.75); box-shadow: 0 6px 20px rgba(0,0,0,.45); background: #111; display: none; pointer-events: none; z-index: 2; }
+  #pip.on { display: block; }
+  #pip.grid { width: min(26vw, 320px); }
+  #pip.off { opacity: 0; }
+  #cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
   #cam.ghost { opacity: 0; }
+  #camgrid { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+  #pip.grid #camgrid { display: block; }
   #no3d { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; text-align: center; padding: 24px; font-size: 16px; line-height: 1.8; }
   #no3d.on { display: flex; }
 
@@ -68,7 +74,8 @@
     #score { font-size: 30px; }
     .hud-mid { top: 56px; width: 60vw; }
     #mode-badge { bottom: 48px; max-width: calc(100% - 24px); font-size: 12px; }
-    #cam { bottom: 86px; width: 34vw; }
+    #pip { bottom: 86px; width: 34vw; }
+    #pip.grid { width: 52vw; }
   }
 
   /* ===== 覆蓋畫面 ===== */
@@ -169,7 +176,7 @@
 <div id="app">
   <canvas id="scene3d"></canvas>
   <div id="no3d">⚠ 3D 場景載入失敗（可能是網路擋住了 Three.js，或瀏覽器不支援 WebGL）。<br>請確認網路連線後重新整理，或改用新版 Chrome／Edge。</div>
-  <video id="cam" autoplay playsinline muted></video>
+  <div id="pip"><video id="cam" autoplay playsinline muted></video><canvas id="camgrid"></canvas></div>
   <canvas id="fx"></canvas>
 
   <div id="hud">
@@ -301,16 +308,19 @@
       </div></details>
     <details class="set-sec" data-sec="motion"><summary><span class="t">✋ 體感</span><span class="v" id="sv-motion"></span></summary>
       <div class="set-body">
+        <label class="row">瞄準方式
+          <select id="set-aim"><option value="grid">九宮格（手在哪一格就敲哪一洞）</option><option value="free">自由移動（槌子跟著手走）</option></select></label>
+        <div class="small-note" style="margin:0">九宮格：看左下角攝影機小視窗裡的格子，上排＝最後排的洞、下排＝最前排。</div>
         <label class="row">打擊方式
           <select id="set-hitmode"><option value="smash">往下敲（標準）</option><option value="touch">手碰到就打（簡單）</option></select></label>
         <label class="row">敲擊靈敏度 <span><input type="range" id="set-sens" min="1" max="5" step="1"> <b id="set-sens-val"></b></span></label>
         <div class="small-note" style="margin:0">敲了沒反應 → 調高；手隨便動就亂敲 → 調低。</div>
-        <label class="row">手部活動範圍
-          <select id="set-range"><option value="small">小（站近鏡頭）</option><option value="mid">中</option><option value="large">大（站遠、手不用伸太開）</option></select></label>
+        <label class="row">手部活動範圍（九宮格大小）
+          <select id="set-range"><option value="small">大格子（站近鏡頭）</option><option value="mid">中</option><option value="large">小格子（站遠、手不用伸太開）</option></select></label>
         <label class="row">幾隻手
           <select id="set-hands"><option value="2">雙手兩支槌子</option><option value="1">單手（電腦較慢時用）</option></select></label>
-        <label class="row">左下角攝影機小視窗
-          <select id="set-pip"><option value="show">顯示</option><option value="hide">隱藏</option></select></label>
+        <label class="row">左下角攝影機影像
+          <select id="set-pip"><option value="show">顯示</option><option value="hide">隱藏（九宮格模式仍會顯示格子）</option></select></label>
         <label class="row">顯示偵測數值（手感調校用） <input type="checkbox" id="set-debug"></label>
       </div></details>
     <details class="set-sec" data-sec="face"><summary><span class="t">🎭 人頭</span><span class="v" id="sv-face"></span></summary>
@@ -374,13 +384,16 @@ const PALM_SMOOTH = 0.6;
 const SMASH_COOLDOWN = 300;
 const TOUCH_DWELL = 90, TOUCH_COOLDOWN = 450;
 const RANGE_SCALE = { small: 1.0, mid: 1.3, large: 1.6 };
+/* 九宮格在攝影機畫面中的範圍（0~1，左右上下對稱）；活動範圍越大＝格子越小、手不用伸太開 */
+const GRID_REGION = { small: [0.06, 0.94], mid: [0.15, 0.85], large: [0.24, 0.76] };
+const GRID_HYST = 0.12;           // 換格遲滯（以格寬為單位），手停在邊界時不會一直跳格
 const MAX_FACES = 6;
 const CARTOON_NAMES = ['小土豆', '灰灰', '沙沙', '可可'];
 
 /* ---------- 設定（localStorage，讀寫都包 try/catch） ---------- */
 const SET_KEY = 'wam-settings';
 const SET = Object.assign({ diff: 'normal', duration: 60, bomb: 'on', sound: true, hitMode: 'smash', sens: 3, range: 'mid', hands: 2,
-  pip: 'show', debug: false, mix: 'mix', labels: true }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY) || '{}'); } catch (e) { return {}; } })());
+  pip: 'show', debug: false, mix: 'mix', labels: true, aim: 'grid' }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY) || '{}'); } catch (e) { return {}; } })());
 function saveSet() { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) {} }
 function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
@@ -754,6 +767,86 @@ function aimOf(p) {
   return { x: Math.min(W, Math.max(0, W / 2 + (p.x - W / 2) * k)), y: Math.min(H, Math.max(0, H / 2 + (p.y - H / 2) * k)) };
 }
 
+/* ---------- 九宮格瞄準 ---------- */
+function gridBox() { const r = GRID_REGION[SET.range] || GRID_REGION.mid; return { x0: r[0], x1: r[1], y0: r[0], y1: r[1] }; }
+/* 純函式：手在攝影機畫面的位置 (u, v)（0~1，已鏡像）→ 格號 0~8。
+ * 上排＝最後排的洞（格號 0~2），與 HOLES 順序一致；prev 是上一格，用來做遲滯。 */
+function gridCell(u, v, prev = -1) {
+  const b = gridBox();
+  const fx = (u - b.x0) / (b.x1 - b.x0) * 3, fy = (v - b.y0) / (b.y1 - b.y0) * 3;
+  let c = Math.min(2, Math.max(0, Math.floor(fx))), r = Math.min(2, Math.max(0, Math.floor(fy)));
+  if (prev >= 0) {
+    const pc = prev % 3, pr = Math.floor(prev / 3);
+    if (c !== pc && fx > pc - GRID_HYST && fx < pc + 1 + GRID_HYST) c = pc;
+    if (r !== pr && fy > pr - GRID_HYST && fy < pr + 1 + GRID_HYST) r = pr;
+  }
+  return r * 3 + c;
+}
+function useGrid() { return G.mode === 'cam' && SET.aim !== 'free'; }
+/* 依軌跡樣本出手：九宮格模式敲「起手那一格」，自由模式敲起手時槌子的位置 */
+function smashSample(key, s, how) {
+  DBG.last = how;
+  if (useGrid() && s.cell >= 0) {
+    const hm = G.hammers.get(key), h = WORLD.HOLES[s.cell];
+    if (hm) { hm.lockX = h.x; hm.lockZ = h.z; hm.swingT = 0; }
+    const ok = whackHole(s.cell);
+    G.flash = { cell: s.cell, t: performance.now(), ok };
+    return ok;
+  }
+  return swingHammer(key, s.ax, s.ay);
+}
+/* 攝影機小視窗座標（object-fit:cover 裁切＋鏡像）：攝影機正規化座標 → 小視窗像素 */
+function pipMap(w, h) {
+  const vw = video.videoWidth || 16, vh = video.videoHeight || 9, s = Math.max(w / vw, h / vh);
+  const ox = (w - vw * s) / 2, oy = (h - vh * s) / 2;
+  return (u, v) => ({ x: u * vw * s + ox, y: v * vh * s + oy });
+}
+const KIND_ICON = { normal: '🐹', gold: '👑', helmet: '⛑️', bomb: '💣' };
+function drawCamGrid() {
+  const pip = $('pip'), cv = $('camgrid');
+  const w = pip.clientWidth, h = pip.clientHeight;
+  if (!w || !h) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+  const map = pipMap(w, h), b = gridBox();
+  const p0 = map(b.x0, b.y0), p1 = map(b.x1, b.y1);
+  const X0 = p0.x, Y0 = p0.y, cw = (p1.x - p0.x) / 3, ch = (p1.y - p0.y) / 3;
+  c.fillStyle = 'rgba(0,0,0,.4)';                     // 格子外變暗：手要在亮的範圍裡
+  c.beginPath(); c.rect(0, 0, w, h); c.rect(X0, Y0, cw * 3, ch * 3); c.fill('evenodd');
+  const handCells = new Set([...G.hands.values()].map(hs => hs.cell).filter(x => x >= 0));
+  const now = performance.now();
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (let i = 0; i < 9; i++) {
+    const x = X0 + (i % 3) * cw, y = Y0 + Math.floor(i / 3) * ch, m = G.moles[i];
+    const live = (G.state === 'playing' || G.state === 'countdown') && m.state !== 'none' && m.state !== 'hit' && m.up > 0.3;
+    if (handCells.has(i)) {
+      c.fillStyle = live ? (m.kind === 'bomb' ? 'rgba(255,60,60,.5)' : 'rgba(110,255,100,.45)') : 'rgba(255,225,77,.35)';
+      c.fillRect(x, y, cw, ch);
+    }
+    if (G.flash && G.flash.cell === i && now - G.flash.t < 280) {
+      c.fillStyle = G.flash.ok ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.3)'; c.fillRect(x, y, cw, ch);
+    }
+    if (live) { c.font = `${Math.round(Math.min(cw, ch) * 0.6)}px "Segoe UI Emoji", sans-serif`; c.fillText(KIND_ICON[m.kind] || '🐹', x + cw / 2, y + ch / 2 + 1); }
+  }
+  c.strokeStyle = 'rgba(255,255,255,.95)'; c.lineWidth = 2;
+  c.strokeRect(X0, Y0, cw * 3, ch * 3);
+  c.beginPath();
+  for (let k = 1; k < 3; k++) { c.moveTo(X0 + k * cw, Y0); c.lineTo(X0 + k * cw, Y0 + ch * 3); c.moveTo(X0, Y0 + k * ch); c.lineTo(X0 + cw * 3, Y0 + k * ch); }
+  c.stroke();
+  c.font = 'bold 11px "Microsoft JhengHei", sans-serif'; c.fillStyle = 'rgba(255,255,255,.85)';
+  c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('後排', 6, Math.max(2, Y0 + 2));
+  c.textBaseline = 'bottom'; c.fillText('前排', 6, Math.min(h - 2, Y0 + ch * 3 - 2));
+  for (const hs of G.hands.values()) {
+    if (!hs.palm) continue;
+    const q = map(hs.palm.x / W, hs.palm.y / H);
+    c.beginPath(); c.arc(q.x, q.y, 7, 0, Math.PI * 2);
+    c.fillStyle = hs.meter >= 1 ? '#7CFF6B' : '#ffe14d'; c.fill();
+    c.lineWidth = 2; c.strokeStyle = '#000'; c.stroke();
+  }
+}
+
 /* ---------- 往下敲判定 ---------- */
 function effThresholds() {
   const f = SENS_FACTOR[(SET.sens | 0) - 1] || 1;
@@ -809,8 +902,13 @@ function detectHands() {
     hs.pts = pts; hs.seen = now; hs.released = false;
     const raw = [0, 5, 9, 13, 17].reduce((a, j) => ({ x: a.x + pts[j].x / 5, y: a.y + pts[j].y / 5 }), { x: 0, y: 0 });
     hs.palm = hs.palm ? { x: hs.palm.x + (raw.x - hs.palm.x) * PALM_SMOOTH, y: hs.palm.y + (raw.y - hs.palm.y) * PALM_SMOOTH } : raw;
-    const aim = aimOf(hs.palm);
-    hs.hist.push({ x: hs.palm.x, y: hs.palm.y, t: now, ax: aim.x, ay: aim.y });
+    let aim;
+    if (useGrid() && WORLD) {
+      hs.cell = gridCell(hs.palm.x / W, hs.palm.y / H, hs.cell ?? -1);   // palm 是整個畫面座標，÷W／H 就是攝影機正規化座標
+      aim = WORLD.screenOf(hs.cell);
+    } else { hs.cell = -1; aim = aimOf(hs.palm); }
+    hs.aim = aim;
+    hs.hist.push({ x: hs.palm.x, y: hs.palm.y, t: now, ax: aim.x, ay: aim.y, cell: hs.cell });
     while (hs.hist.length && now - hs.hist[0].t > 600) hs.hist.shift();
     let hm = G.hammers.get(key);
     if (!hm) { hm = { swingT: -1 }; G.hammers.set(key, hm); }
@@ -824,17 +922,20 @@ function detectHands() {
     if (SET.hitMode === 'touch') {
       const p = WORLD && WORLD.pick(aim.x, aim.y);
       let hole = -1;
-      if (p) WORLD.HOLES.forEach((h, k) => { if (Math.hypot(h.x - p.x, h.z - p.z) < 0.95 && hittable(G.moles[k])) hole = k; });
+      if (useGrid()) { if (hs.cell >= 0 && hittable(G.moles[hs.cell])) hole = hs.cell; }
+      else if (p) WORLD.HOLES.forEach((h, k) => { if (Math.hypot(h.x - p.x, h.z - p.z) < 0.95 && hittable(G.moles[k])) hole = k; });
       if (hole < 0) { hs.dwellHole = -1; return; }
       if (hs.dwellHole !== hole) { hs.dwellHole = hole; hs.dwellT = now; return; }
       if (now - hs.dwellT >= TOUCH_DWELL) {
-        hm.lockX = p.x; hm.lockZ = p.z; hm.swingT = 0;
-        whackHole(hole); hs.cool = now + TOUCH_COOLDOWN; hs.dwellHole = -1; DBG.last = '手碰到';
+        const h = WORLD.HOLES[hole];
+        hm.lockX = h.x; hm.lockZ = h.z; hm.swingT = 0;
+        G.flash = { cell: hole, t: now, ok: whackHole(hole) };
+        hs.cool = now + TOUCH_COOLDOWN; hs.dwellHole = -1; DBG.last = '手碰到';
       }
       return;
     }
     const g = detectSmash(hs.hist, now);
-    if (g) { swingHammer(key, g.top.ax, g.top.ay); hs.hist = []; hs.cool = now + SMASH_COOLDOWN; DBG.last = '往下敲'; }
+    if (g) { smashSample(key, g.top, '往下敲'); hs.hist = []; hs.cool = now + SMASH_COOLDOWN; }
   });
   for (const [k, hs] of G.hands) {
     if (seen.has(k)) continue;
@@ -843,7 +944,7 @@ function detectHands() {
       hs.released = true;
       const lastT = hs.hist[hs.hist.length - 1].t;
       const g = now - lastT < 250 ? detectSmash(hs.hist, lastT, RELEASE_RELAX) : null;
-      if (g) { swingHammer(k, g.top.ax, g.top.ay); hs.hist = []; hs.cool = now + SMASH_COOLDOWN; DBG.last = '手消失前敲下'; }
+      if (g) { smashSample(k, g.top, '手消失前敲下'); hs.hist = []; hs.cool = now + SMASH_COOLDOWN; }
     }
     if (now - hs.seen > 300) { G.hands.delete(k); const hm = G.hammers.get(k); if (hm && hm.swingT < 0) hm.show = false; }
   }
@@ -903,10 +1004,11 @@ function drawFx() {
     ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y);
   }
   ctx.globalAlpha = 1;
+  if (useGrid()) drawCamGrid();
   if (G.mode === 'cam') {
     for (const [k, hs] of G.hands) {
       if (!hs.palm) continue;
-      const a = aimOf(hs.palm), r = 26;
+      const a = hs.aim || aimOf(hs.palm), r = 26;
       ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(a.x, a.y, r, 0, Math.PI * 2); ctx.stroke();
       ctx.strokeStyle = hs.meter >= 1 ? '#7CFF6B' : '#ffe14d';
       ctx.beginPath(); ctx.arc(a.x, a.y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, hs.meter)); ctx.stroke();
@@ -1121,16 +1223,26 @@ function endGame() {
   $('gameover-screen').classList.remove('hidden');
   if (isNew && G.score > 0) confetti();
 }
-function applyPip() { video.classList.toggle('ghost', SET.pip === 'hide'); }
+function applyPip() {
+  const pip = $('pip'), grid = useGrid();
+  pip.classList.toggle('on', G.mode === 'cam');
+  pip.classList.toggle('grid', grid);
+  video.classList.toggle('ghost', SET.pip === 'hide');
+  pip.classList.toggle('off', SET.pip === 'hide' && !grid);   // 不用九宮格又隱藏影像：整個小視窗都藏起來
+}
 function setMode(mode) {
   G.mode = mode;
-  $('mode-badge').textContent = mode === 'cam'
-    ? (SET.hitMode === 'touch' ? '📷 體感模式：手移到地鼠上就會打' : '📷 體感模式：手移到地鼠上方，由上往下用力一敲')
-    : '🖱️ 滑鼠模式：移動槌子、點一下敲（數字鍵 1～9 也能敲）';
-  video.classList.toggle('on', mode === 'cam');
+  modeBadge();
   applyPip();
   fx.style.cursor = mode === 'cam' ? 'default' : 'none';
   if (mode !== 'cam') { G.hammers.delete('h0'); G.hammers.delete('h1'); }
+}
+function modeBadge() {
+  const grid = SET.aim !== 'free';
+  $('mode-badge').textContent = G.mode === 'cam'
+    ? (grid ? (SET.hitMode === 'touch' ? '📷 看左下角九宮格：手停在有地鼠的格子就會打' : '📷 看左下角九宮格：手在哪一格，由上往下一敲就打那一洞')
+            : (SET.hitMode === 'touch' ? '📷 體感模式：手移到地鼠上就會打' : '📷 體感模式：手移到地鼠上方，由上往下用力一敲'))
+    : '🖱️ 滑鼠模式：移動槌子、點一下敲（數字鍵 1～9 也能敲）';
 }
 function camErrorText(e) {
   switch (e && e.name) {
@@ -1200,13 +1312,13 @@ document.querySelectorAll('#diff-seg button').forEach(b => b.addEventListener('c
 const OPEN_KEY = 'wam-set-open';
 function setSummaries() {
   $('sv-game').textContent = `${SET.duration} 秒・炸彈${SET.bomb === 'off' ? '關' : '開'}・音效${SET.sound ? '開' : '關'}`;
-  $('sv-motion').textContent = `${SET.hitMode === 'touch' ? '手碰到' : '往下敲'}・靈敏度 ${SET.sens}・${+SET.hands === 1 ? '單手' : '雙手'}`;
+  $('sv-motion').textContent = `${SET.aim === 'free' ? '自由移動' : '九宮格'}・${SET.hitMode === 'touch' ? '手碰到' : '往下敲'}・靈敏度 ${SET.sens}・${+SET.hands === 1 ? '單手' : '雙手'}`;
   $('sv-face').textContent = `${FACES.filter(Boolean).length} 張照片・${SET.mix === 'photo' ? '只用照片' : '混合卡通'}`;
   $('sv-rec').textContent = `最高分 ${G.best}`;
 }
 function openSettings() {
   $('set-dur').value = SET.duration; $('set-bomb').value = SET.bomb; $('set-sound').checked = !!SET.sound;
-  $('set-hitmode').value = SET.hitMode; $('set-sens').value = SET.sens; $('set-sens-val').textContent = SET.sens;
+  $('set-aim').value = SET.aim; $('set-hitmode').value = SET.hitMode; $('set-sens').value = SET.sens; $('set-sens-val').textContent = SET.sens;
   $('set-range').value = SET.range; $('set-hands').value = SET.hands; $('set-pip').value = SET.pip; $('set-debug').checked = !!SET.debug;
   $('set-mix').value = SET.mix; $('set-labels').checked = !!SET.labels;
   let open = []; try { open = JSON.parse(lsGet(OPEN_KEY, '[]')); } catch (e) {}
@@ -1223,10 +1335,10 @@ $('settings-btn').addEventListener('click', openSettings);
 $('settings-ok').addEventListener('click', () => {
   const handsBefore = +SET.hands;
   SET.duration = +$('set-dur').value; SET.bomb = $('set-bomb').value; SET.sound = $('set-sound').checked;
-  SET.hitMode = $('set-hitmode').value; SET.sens = +$('set-sens').value; SET.range = $('set-range').value;
+  SET.aim = $('set-aim').value; SET.hitMode = $('set-hitmode').value; SET.sens = +$('set-sens').value; SET.range = $('set-range').value;
   SET.hands = +$('set-hands').value; SET.pip = $('set-pip').value; SET.debug = $('set-debug').checked;
   SET.mix = $('set-mix').value; SET.labels = $('set-labels').checked;
-  saveSet(); applyPip(); renderHUD();
+  saveSet(); applyPip(); modeBadge(); renderHUD();
   if (handsBefore !== SET.hands && landmarker) { landmarker = null; landmarkerHands = 0; }   // 下次開打時依新手數重建
   $('settings-modal').classList.add('hidden');
 });
@@ -1251,7 +1363,7 @@ G._test = {
   step: dt => { update(dt); if (WORLD) WORLD.render(dt, renderState()); drawFx(); },
   spawn: (i, kind, face = 0) => { const m = spawnMole(i, kind, face); m.state = 'up'; m.up = 1; m.t = 0; return m; },
   whackHole, whackAt, swingHammer, detectSmash, effThresholds, set: SET, world: () => WORLD, faces: () => FACES,
-  buildFaceList, cropApply, crop: CROP, openCropFor, aimOf, DIFF, up: UP,
+  buildFaceList, cropApply, crop: CROP, openCropFor, aimOf, DIFF, up: UP, gridCell, gridBox, smashSample, drawCamGrid, applyPip, setMode,
 };
 
 /* ---------- 3D 場景：動態載入，失敗顯示提示 ---------- */
